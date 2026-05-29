@@ -1118,6 +1118,7 @@ class MPV(object):
         handled in the interval between keypress(...) running and a subsequent wait_for_event(...) call.
         """
         result = Future()
+        result.set_running_or_notify_cancel()
 
         @self.event_callback(*event_types)
         def target_handler(evt):
@@ -1136,7 +1137,6 @@ class MPV(object):
         err_unregister = self._set_error_handler(result)
 
         try:
-            result.set_running_or_notify_cancel()
             if catch_errors:
                 self._exception_futures.add(result)
 

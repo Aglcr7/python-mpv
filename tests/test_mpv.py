@@ -23,6 +23,7 @@ from contextlib import contextmanager
 import os.path
 import os
 import time
+import types
 from concurrent.futures import Future, InvalidStateError
 
 os.environ["PATH"] = os.path.dirname(__file__) + os.pathsep + os.environ["PATH"]
@@ -690,6 +691,24 @@ class TestStreams(unittest.TestCase):
 
 
 class TestLifecycle(unittest.TestCase):
+    def test_wait_for_event_handles_immediate_event(self):
+        m = object.__new__(mpv.MPV)
+        m._exception_futures = set()
+        event = mock.Mock()
+
+        def event_callback(self, *event_types):
+            def register(callback):
+                callback.unregister_mpv_events = mock.Mock()
+                callback(event)
+                return callback
+            return register
+
+        m.event_callback = types.MethodType(event_callback, m)
+        m._set_error_handler = mock.Mock(return_value=mock.Mock())
+        m.check_core_alive = mock.Mock()
+
+        self.assertIs(m.wait_for_event('end_file', timeout=0), True)
+
     def test_create_destroy(self):
         thread_names = lambda: [ t.name for t in threading.enumerate() ]
         self.assertNotIn('MPVEventHandlerThread', thread_names())
